@@ -1,5 +1,6 @@
 require 'active_support/time_with_zone'
 require 'active_support/core_ext/time/calculations'
+require 'to_slug'
 
 module Middleman
   module Blog
@@ -103,7 +104,7 @@ module Middleman
       def path_part(part)
         @_path_parts ||= app.blog.path_matcher.match(path).captures
 
-        @_path_parts[app.blog.matcher_indexes[part]]
+        @_path_parts[app.blog.matcher_indexes[part]] if app.blog.matcher_indexes[part]
       end
 
       # Attempt to figure out the date of the post. The date should be
@@ -145,7 +146,7 @@ module Middleman
       # The "slug" of the article that shows up in its URL.
       # @return [String]
       def slug
-        @_slug ||= path_part("title")
+        @_slug ||= path_part("title") || title.to_slug
       end
 
       # The previous (chronologically earlier) article before this one

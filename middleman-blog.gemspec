@@ -21,4 +21,5 @@ Gem::Specification.new do |s|
   s.add_dependency("middleman-core", ["~> 3.0.1"])
   s.add_dependency("maruku", ["~> 0.6.0"])
   s.add_dependency("tzinfo", ["~> 0.3.0"])
+  s.add_dependency("to_slug", ["~> 1.0.8"])
 end
