@@ -17,9 +17,10 @@ Gem::Specification.new do |s|
   s.files         = `git ls-files -z`.split("\0")
   s.test_files    = `git ls-files -z -- {fixtures,features}/*`.split("\0")
   s.require_paths = ["lib"]
-  
-  s.add_dependency("middleman-core", ["~> 3.0.1"])
+
+  s.add_dependency("middleman-core", ["~> 3.0"])
   s.add_dependency("maruku", ["~> 0.6.0"])
   s.add_dependency("tzinfo", ["~> 0.3.0"])
   s.add_dependency("to_slug", ["~> 1.0.8"])
+  s.add_dependency("nokogiri", ["~> 1.5.6"])
 end

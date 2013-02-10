@@ -1,6 +1,7 @@
 require 'active_support/time_with_zone'
 require 'active_support/core_ext/time/calculations'
 require 'to_slug'
+require 'middleman-blog/truncate_html'
 
 module Middleman
   module Blog
@@ -20,7 +21,7 @@ module Middleman
         content = super(opts, locs, &block)
 
         unless opts[:keep_separator]
-          if content =~ app.blog.options.summary_separator
+          if content.match(app.blog.options.summary_separator)
             content.sub!(app.blog.options.summary_separator, "")
           end
         end
@@ -60,29 +61,34 @@ module Middleman
       # everything before the summary separator (set via :summary_separator
       # and defaulting to "READMORE") or the first :summary_length
       # characters of the post.
+      #
+      # :summary_generator can be set to a Proc in order to provide
+      # custom summary generation. The Proc is provided a parameter
+      # which is the rendered content of the article (without layout), the
+      # desired length to trim the summary to, and the ellipsis string to use.
+      #
+      # @param [Number] length How many characters to trim the summary to.
+      # @param [Number] length The ellipsis string to use when content is trimmed.
       # @return [String]
-      def summary
-        @_summary ||= begin
-          source = app.template_data_for_file(source_file).dup
+      def summary(length=app.blog.options.summary_length, ellipsis='...')
+        rendered = render(:layout => false, :keep_separator => true)
 
-          summary_source = if app.blog.options.summary_generator
-                             app.blog.options.summary_generator.call(self, source)
-                           else
-                             default_summary_generator(source)
-                           end
-
-          md   = metadata.dup
-          locs = md[:locals]
-          opts = md[:options].merge({:template_body => summary_source})
-          app.render_individual_file(source_file, locs, opts)
+        if app.blog.options.summary_separator && rendered.match(app.blog.options.summary_separator)
+          rendered.split(app.blog.options.summary_separator).first
+        elsif app.blog.options.summary_generator
+          app.blog.options.summary_generator.call(self, rendered, ellipsis)
+        else
+          default_summary_generator(rendered, length, ellipsis)
         end
       end
 
-      def default_summary_generator(source)
-        if source =~ app.blog.options.summary_separator
-          source.split(app.blog.options.summary_separator).first
+      def default_summary_generator(rendered, length, ellipsis)
+        if rendered =~ app.blog.options.summary_separator
+          rendered.split(app.blog.options.summary_separator).first
+        elsif length
+          TruncateHTML.truncate_html(rendered, length, ellipsis)
         else
-          source.match(/(.{1,#{app.blog.options.summary_length}}.*?)(\n|\Z)/m).to_s
+          rendered
         end
       end
 
@@ -155,7 +161,7 @@ module Middleman
       def previous_article
         app.blog.articles.find {|a| a.date < self.date }
       end
-      
+
       # The next (chronologically later) article after this one
       # or nil if this is the most recent article.
       # @return [Middleman::Sitemap::Resource]
