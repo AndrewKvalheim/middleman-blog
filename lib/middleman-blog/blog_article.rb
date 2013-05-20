@@ -76,13 +76,14 @@ module Middleman
         if app.blog.options.summary_separator && rendered.match(app.blog.options.summary_separator)
           rendered.split(app.blog.options.summary_separator).first
         elsif app.blog.options.summary_generator
-          app.blog.options.summary_generator.call(self, rendered, ellipsis)
+          app.blog.options.summary_generator.call(self, rendered, length, ellipsis)
         else
           default_summary_generator(rendered, length, ellipsis)
         end
       end
 
       def default_summary_generator(rendered, length, ellipsis)
+        require 'middleman-blog/truncate_html'
         if rendered =~ app.blog.options.summary_separator
           rendered.split(app.blog.options.summary_separator).first
         elsif length
@@ -161,7 +162,7 @@ module Middleman
       def previous_article
         app.blog.articles.find {|a| a.date < self.date }
       end
-
+      
       # The next (chronologically later) article after this one
       # or nil if this is the most recent article.
       # @return [Middleman::Sitemap::Resource]
