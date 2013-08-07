@@ -4,8 +4,25 @@ module Middleman
     # A sitemap plugin that splits indexes (including tag
     # and calendar indexes) over multiple pages
     class Paginator
-      def initialize(app)
+      def initialize(app, controller=nil)
         @app = app
+        @blog_controller = controller
+      end
+
+      def blog_data
+        if @blog_controller
+          @blog_controller.data
+        else
+          @app.blog
+        end
+      end
+
+      def blog_options
+        if @blog_controller
+          @blog_controller.options
+        else
+          @app.blog.options
+        end
       end
 
       # Substitute the page number into the resource URL.
@@ -32,17 +49,22 @@ module Middleman
 
         resources.each do |res|
           next if res.ignored?
-
+          
           md = res.metadata
+
+          # Skip other blogs' resources
+          res_controller = md[:locals]["blog_controller"] || res.blog_controller
+          next if @blog_controller && res_controller && (res_controller != @blog_controller)
+
           if md[:page]["pageable"]
             # "articles" local variable is populated by Calendar and Tag page generators
             # If it's not set then use the complete list of articles
             # TODO: Some way to allow the frontmatter to specify the article filter?
-            articles = md[:locals]["articles"] || @app.blog.articles
+            articles = md[:locals]["articles"] || self.blog_data.articles
 
             # Allow blog.per_page and blog.page_link to be overridden in the frontmatter
-            per_page  = md[:page]["per_page"] || @app.blog.options.per_page
-            page_link = md[:page]["page_link"] || @app.blog.options.page_link
+            per_page  = md[:page]["per_page"] || self.blog_options.per_page
+            page_link = md[:page]["page_link"] || self.blog_options.page_link
 
             num_pages = (articles.length / per_page.to_f).ceil
 
@@ -72,7 +94,8 @@ module Middleman
 
               # Include the articles so that non-proxied pages can use "articles" instead
               # of "blog.articles" for consistency with the calendar and tag templates.
-              'articles' => articles
+              'articles' => articles,
+              'blog_controller' => @blog_controller
             }
 
             prev_page_res = res
@@ -105,7 +128,8 @@ module Middleman
                 'next_page' => nil,
                 'prev_page' => prev_page_res,
                 'page_articles' => articles[page_start..page_end],
-                'articles' => articles
+                'articles' => articles,
+                'blog_controller' => @blog_controller
               }
 
               # Add a reference in the previous page to this page

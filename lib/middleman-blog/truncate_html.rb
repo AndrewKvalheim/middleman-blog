@@ -8,7 +8,8 @@ end
 # MIT license
 module TruncateHTML
   def self.truncate_html(text, max_length, ellipsis = "...")
-    ellipsis_length = ellipsis.length     
+    ellipsis_length = ellipsis.length
+    text = text.encode('UTF-8') if text.respond_to?(:encode)
     doc = Nokogiri::HTML::DocumentFragment.parse text
     content_length = doc.inner_text.length
     actual_length = max_length - ellipsis_length
@@ -46,8 +47,16 @@ module NokogiriTruncator
     end
   end
 
+  module CommentNode
+    def truncate(*args)
+      # Don't truncate comments, since they aren't visible
+      self
+    end
+  end
+
 end
 
 Nokogiri::HTML::DocumentFragment.send(:include, NokogiriTruncator::NodeWithChildren)
 Nokogiri::XML::Element.send(:include, NokogiriTruncator::NodeWithChildren)
 Nokogiri::XML::Text.send(:include, NokogiriTruncator::TextNode)
+Nokogiri::XML::Comment.send(:include, NokogiriTruncator::CommentNode)
